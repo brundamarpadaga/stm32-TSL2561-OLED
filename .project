@@ -29,4 +29,17 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>BSP</name>
+			<type>2</type>
+			<location>C:/Users/marpa/Documents/packt-projects/Hands-On-RTOS-with-Microcontrollers/BSP</location>
+		</link>
+	</linkedResources>
+	<variableList>
+		<variable>
+			<name>copy_PARENT</name>
+			<value>$%7BPARENT-3-PROJECT_LOC%7D/Documents/packt-projects/Hands-On-RTOS-with-Microcontrollers</value>
+		</variable>
+	</variableList>
 </projectDescription>

@@ -31,6 +31,8 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+
+
 /*-----------------------------------------------------------
  * Application specific definitions.
  *
@@ -44,6 +46,8 @@
  *----------------------------------------------------------*/
 
 /* USER CODE BEGIN Includes */
+
+#include "SEGGER_SYSVIEW_FreeRTOS.h"
 /* Section where include file can be added */
 /* USER CODE END Includes */
 
