@@ -14,8 +14,9 @@
  */
 
 #include "tsl2561.h"
-#include "cmsis_os.h"   /* osDelay */
-
+#include "FreeRTOS.h"
+#include "task.h"
+#include "SEGGER_RTT.h"
 /* -----------------------------------------------------------------------
  * Integer lux calculation constants (datasheet pp. 24-28)
  * Naming convention matches the original TAOS source code exactly.
@@ -161,12 +162,23 @@ TSL2561_Status TSL2561_Init(TSL2561_Handle *dev)
     if (prv_write_reg(dev, TSL2561_REG_CONTROL, TSL2561_POWER_UP) != TSL2561_OK)
         return TSL2561_ERROR;
 
+    HAL_Delay(5);
+
     /* 2. Optional verification — read back CONTROL, expect 0x03 */
     uint8_t ctrl = 0;
-    if (prv_read_reg(dev, TSL2561_REG_CONTROL, &ctrl) != TSL2561_OK)
-        return TSL2561_ERROR;
-    if (ctrl != TSL2561_POWER_UP)
-        return TSL2561_ERROR;   /* Device not responding correctly */
+    if (prv_read_reg(dev, TSL2561_REG_CONTROL, &ctrl) != TSL2561_OK) {
+    	SEGGER_RTT_WriteString(0, "Init fail: control read\n");
+    	return TSL2561_ERROR;
+    }
+
+
+    SEGGER_RTT_printf(0, "ctrl readback: 0x%02X\n", ctrl);  // ← what does this print?
+
+    if ((ctrl&0x03) != TSL2561_POWER_UP){
+    	SEGGER_RTT_WriteString(0, "Init fail: ctrl mismatch\n");
+    	return TSL2561_ERROR;   /* Device not responding correctly */
+    }
+
 
     /* 3. Set gain and integration time (TIMING register) */
     uint8_t timing = (dev->gain & 0x10u) | (dev->integ & 0x03u);
@@ -277,13 +289,14 @@ uint32_t TSL2561_CalculateLux(TSL2561_Handle *dev,
  * ----------------------------------------------------------------------- */
 TSL2561_Status TSL2561_ReadLux(TSL2561_Handle *dev, uint32_t *lux)
 {
+	SEGGER_RTT_WriteString(0, "In read lux function \n");
     uint16_t ch0, ch1;
 
     /* Guard against invalid integ index */
     uint8_t idx = (dev->integ < 3u) ? dev->integ : 2u;
 
     /* Wait for at least one full conversion (FreeRTOS-friendly delay) */
-    osDelay(s_integ_delay_ms[idx]);
+    vTaskDelay(pdMS_TO_TICKS(s_integ_delay_ms[idx]));
 
     if (TSL2561_ReadChannels(dev, &ch0, &ch1) != TSL2561_OK)
         return TSL2561_ERROR;

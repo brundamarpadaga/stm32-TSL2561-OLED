@@ -29,6 +29,7 @@
 #include "queue.h"      /* QueueHandle_t, xQueueCreate, xQueueSend, xQueueReceive */
 #include "task.h"       /* portMAX_DELAY, pdPASS */
 #include<SEGGER_SYSVIEW.h>
+#include<stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -95,6 +96,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ETH_Init();
+  NVIC_SetPriorityGrouping(0);
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_I2C1_Init();
@@ -110,6 +112,7 @@ int main(void)
 
   /* Sanity check before RTOS starts — HAL_Delay is safe here (no scheduler) */
   uint8_t sensor_id = 0;
+
   if (TSL2561_Init(&g_light_sensor) != TSL2561_OK)
   {
       /* If this fires: check wiring, pull-ups, and ADDR SEL pin voltage */
@@ -176,7 +179,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN StartDefaultTask */
   for (;;)
   {
-    vTaskDelay(pdMS_TO_TICKS(1));
+
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -188,6 +191,7 @@ void StartReadLightSensor(void *argument)
 {
   /* USER CODE BEGIN StartReadLightSensor */
   uint32_t lux = 0;
+  char buf[32];
 
   for (;;)
   {
@@ -196,6 +200,9 @@ void StartReadLightSensor(void *argument)
       {
           /* Queue holds uint16_t — cap lux at 65535 for safety */
           uint16_t lux16 = (lux > 65535u) ? 65535u : (uint16_t)lux;
+
+          snprintf(buf, sizeof(buf), "Lux: %u\n", (unsigned int)lux16);
+          SEGGER_RTT_WriteString(0, buf);
 
           /* Post to queue, don't block if full (timeout = 0) */
           xQueueSend(sensorReadingQHandle, &lux16, 0);
@@ -213,15 +220,19 @@ void StartUpdateOLED(void *argument)
 {
   /* USER CODE BEGIN StartUpdateOLED */
   uint16_t lux = 0;
+  char buf[32];
+
 
   for (;;)
   {
       /* Block until a lux reading is available (portMAX_DELAY = wait forever) */
-      if (xQueueReceive(sensorReadingQHandle, &lux, portMAX_DELAY) == pdPASS)
+      if (xQueueReceive(sensorReadingQHandle, &lux, portMAX_DELAY) == pdPASS) // read Queue and enter if a read is successful
       {
-          HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+
+
+          HAL_GPIO_WritePin(GPIOB, LD1_Pin, GPIO_PIN_SET); // set green LED
           vTaskDelay(25/portTICK_PERIOD_MS);
-          HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+          HAL_GPIO_WritePin(GPIOB, LD1_Pin, GPIO_PIN_RESET); // reset green LED
           vTaskDelay(25/portTICK_PERIOD_MS);
       }
   }
